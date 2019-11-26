@@ -62,8 +62,10 @@ if [ "$ACTION" = list ]; then
 		printf "$LIST\n"
 	elif [[ $2 =~ ^[0-9]+$ ]]; then
 		printf "$2\n$LIST\n" | awk '{ if(NR==2) print $0; if($1==ID) print $0; if(NR==1) ID=$0;}'
+	elif [[ "$3" =~ ^[0-9]+$ ]]; then
+		printf "$2 $3\n$LIST\n" | awk 'BEGIN{ID='\0'; cnt=1;}{ if(NR==2) print $0; if($2==DATASET) if(cnt++==ID) print cnt-1"\t"$2"\t"$3; if(NR==1) {DATASET=$1; ID=$2;}}' | column -t 
 	else 
-		printf "$2\n$LIST\n" | awk 'BEGIN{ID='\0';}{ if(NR==2) print $0; if($2==ID) print $0; if(NR==1) ID=$0;}'
+		printf "$2\n$LIST\n" | awk 'BEGIN{ID='\0'; cnt=1;}{ if(NR==2) print $0; if($2==ID) print cnt++"\t"$2"\t"$3; if(NR==1) ID=$0;}' | column -t
 	fi
 fi
 if [ "$ACTION" = delete ]; then
@@ -75,4 +77,12 @@ if [ "$ACTION" = delete ]; then
 	else 
 		printf "$2\n$LIST\n" | awk '{ if(NR>2) { if($2==ID) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}} if(NR==1) ID=$0;}'
 	fi
+fi
+if [ "$ACTION" = export ]; then
+	if [ "$2" = "" ]; then
+		echo "ERROR: missing dataset!!"
+		echo "Usage: zbackup [-e|--export] DATASET [ID]"
+		exit -1
+	fi
+	
 fi
