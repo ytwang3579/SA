@@ -74,6 +74,8 @@ if [ "$ACTION" = delete ]; then
 		printf "$LIST\n" | awk '{ if(NR>1) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}}'
 	elif [[ $2 =~ ^[0-9]+$ ]]; then
 		printf "$2\n$LIST\n" | awk '{ if(NR>2) { if($1==ID) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}} if(NR==1) ID=$0;}'
+	elif [[ "$3" =~ ^[0-9]+$ ]]; then
+		printf "$2 $3\n$LIST\n" | awk 'BEGIN{ID='\0'; cnt=1;}{ if(NR==2) print $0; if($2==DATASET) if(cnt++==ID) if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");} if(NR==1) {DATASET=$1; ID=$2;}}' | column -t 
 	else 
 		printf "$2\n$LIST\n" | awk '{ if(NR>2) { if($2==ID) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}} if(NR==1) ID=$0;}'
 	fi
