@@ -52,7 +52,7 @@ if [ "$ACTION" = "" ]; then
 		DIFF=$(expr $NOWCNT - $ROTATION_CNT)
 		DESTROY=$(zfs list -rt snapshot $1 | grep $1 | head -n $DIFF | cut -d' ' -f1)
 		
-		printf "$DESTROY" | awk '{if( system("zfs destroy "$0) == 0 ) print "Destroy "$0; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}'
+		printf "$DESTROY" | awk '{if( system("zfs destroy "$0) == 0 ) print "Destroy "$0; else {print "ERROR: could not destroy!!\n"; system("exit -1"); exit(-1);}}'
 	fi
 
 fi
@@ -71,13 +71,13 @@ fi
 if [ "$ACTION" = delete ]; then
 	LIST=$(zfs list -t snapshot | sort -t '@' -k 2 | awk -F@ 'BEGIN{print "ID\tDATASET\tTIME"}{if(NR>1) print ++cnt"\t"$1"\t"$2}' | cut -d' ' -f 1,3 | column -t)
 	if [ "$2" = "" ]; then
-		printf "$LIST\n" | awk '{ if(NR>1) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}}'
+		printf "$LIST\n" | awk '{ if(NR>1) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1"); exit(-1);}}}'
 	elif [[ $2 =~ ^[0-9]+$ ]]; then
-		printf "$2\n$LIST\n" | awk '{ if(NR>2) { if($1==ID) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}} if(NR==1) ID=$0;}'
+		printf "$2\n$LIST\n" | awk '{ if(NR>2) { if($1==ID) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1"); exit(-1);}}} if(NR==1) ID=$0;}'
 	elif [[ "$3" =~ ^[0-9]+$ ]]; then
-		printf "$2 $3\n$LIST\n" | awk 'BEGIN{ID='\0'; cnt=1;}{ if(NR==2) print $0; if($2==DATASET) if(cnt++==ID) if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");} if(NR==1) {DATASET=$1; ID=$2;}}' | column -t 
+		printf "$2 $3\n$LIST\n" | awk 'BEGIN{ID='\0'; cnt=1;}{ if($2==DATASET) if(cnt++==ID) if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1"); exit(-1);} if(NR==1) {DATASET=$1; ID=$2;}}' | column -t 
 	else 
-		printf "$2\n$LIST\n" | awk '{ if(NR>2) { if($2==ID) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1");}}} if(NR==1) ID=$0;}'
+		printf "$2\n$LIST\n" | awk '{ if(NR>2) { if($2==ID) { if( system("zfs destroy "$2"@"$3) == 0 ) print "Destroy "$2"@"$3; else {print "ERROR: could not destroy!!\n"; system("exit -1"); exit(-1);}}} if(NR==1) ID=$0;}'
 	fi
 fi
 if [ "$ACTION" = export ]; then
@@ -86,5 +86,28 @@ if [ "$ACTION" = export ]; then
 		echo "Usage: zbackup [-e|--export] DATASET [ID]"
 		exit -1
 	fi
-	
+	LIST=$(zfs list -t snapshot | sort -t '@' -k 2 | awk -F@ 'BEGIN{print "ID\tDATASET\tTIME"}{if(NR>1) print ++cnt"\t"$1"\t"$2}' | cut -d' ' -f 1,3 | column -t)
+	if [ "$3" = "" ]; then
+		ID=1
+	else
+		ID=$3
+	fi
+	printf "$2 $ID\n$LIST\n" | awk 'BEGIN{ID='\0'; cnt=1;}{ if($2==DATASET) if(cnt++==ID) { if( system("mkdir -p "$2"; zfs send "$2"@"$3" | gzip -c | openssl aes256 > ./"$2"@"$3".gz.enc") == 0) print "Export "$2"@"$3" to ./"$2"@"$3".gz.enc"; else { print "ERROR: could not export!!\n"; system("exit -1"); exit(-1)}} if(NR==1) {DATASET=$1; ID=$2;}}'
+fi
+if [ "$ACTION" = import ]; then
+	if [ "$2" = "" ]; then
+		echo "ERROR: missing FILENAME!!"
+		echo "Usage: zbackup [-i|--import] FILENAME DATASET"
+		exit -1
+	fi
+	if [ "$3" = "" ]; then
+		echo "ERROR: missing DATASET!!"
+		echo "Usage: zbackup [-i|--import] FILENAME DATASET"
+		exit -1
+	fi
+	openssl aes256 -d -in $2 | gzip -d | zfs receive $3"@`date +%F-%T`"
+	if [ $? != 0 ]; then
+		echo "ERROR: could not import!!\n"
+		exit -1
+	fi
 fi
