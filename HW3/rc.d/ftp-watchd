@@ -12,6 +12,10 @@ load_rc_config ${name}
 command="/usr/local/sbin/pure-uploadscript"
 ftp_watchd_pidfile=${ftp_watchd_pidfile:-"/var/run/pure-uploadscript.pid"}
 ftp_watchd_uploadscript=${ftp_watchd_command:-"/usr/home/ytwang/SA/HW3/uploadscript.sh"}
+ftp_watchd_showtype=${ftp_watchd_showtype:-"NO"}
+if [ $ftp_watchd_showtype = "YES" ]; then
+	ftp_watchd_uploadscript="/usr/home/ytwang/SA/HW3/uploadscript_type.sh"
+fi
 
 command_args="-B -p ${ftp_watchd_pidfile} -r ${ftp_watchd_uploadscript}"
 start_postcmd=start_postcmd
