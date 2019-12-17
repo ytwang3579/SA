@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# PROVIDE: websocketd
+# REQUIRE: DAEMON
+
+. /etc/rc.subr
+
+name="websocketd"
+rcvar="websocketd_enable"
+load_rc_config ${name}
+
+command="/usr/local/bin/websocketd"
+
+command_args="--port=4430 /usr/local/www/apache24/data/wsdemo/ws.php &"
+
+
+run_rc_command "$1"

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+body{
+    text-align: center;
+}
+canvas {
+    border:1px solid #d3d3d3;
+    background-color: #f1f1f1;
+    display: block;
+    margin: 0 auto;
+}
+</style>
+</head>
+<body onload="startGame()">
+<script>
+var myGameArea;
+var myGamePiece;
+var myObstacles = [];
+var myScore;
+var pause = false; //if the game is paused set it to true
+var speed = 3;
+var life = 5;
+var spark = 0; // control the time of invincible status
+var bump = false; // if bump into obstacle set it to truth
+var points=0; // points of passing Obstacles
+
+var up = false;
+var down = false;
+var left = false;
+var right = false;
+var delta = 0;
+var minGap = 187;
+
+
+function startGame() {
+    myGameArea.start();
+    myGamePiece = new component(78, 78, "stop.svg", 10, 225, "image"); 
+    myScore = new textcomponent("20px", "Arial", "black", 380, 20, points);
+    myLife = new textcomponent("20px", "serif", "blue", 380, 40, life);
+
+}
+
+
+
+var myGameArea = {
+    canvas : document.createElement("canvas"),
+    title : document.createElement("h3"),
+
+    start : function() {
+        var node = document.createTextNode("OWO");
+        this.title.appendChild(node);
+        document.body.insertBefore(this.title, document.body.childNodes[0]);
+
+        this.canvas.width = 1000;
+        this.canvas.height = 600;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[1]);
+        this.frameNo = 0;
+        this.interval = setInterval(updateGameArea, 20);
+
+        window.addEventListener('keydown', function (e) {
+            //record of every pressed down keyboards
+            if(e.key=='ArrowUp') {
+                console.log('UP');
+                up = true;
+            }
+            if(e.key=='ArrowDown') {
+                console.log('DOWN');
+                down = true;
+            }
+            if(e.key=='ArrowLeft') {
+                console.log('LEFT');
+                left = true;
+            }
+            if(e.key=='ArrowRight') {
+                console.log('RIGHT');
+                right = true;
+            }
+            if(e.key=='r') {
+                console.log('RESTART');
+                myGameArea.restart();
+            }
+            if(e.key==' '){
+                console.log('PAUSE');
+                pause = ~pause;
+            }
+            
+        })
+        window.addEventListener('keyup', function (e) {        
+            //reset the record of every keyup buttons on keyboards
+            if(e.key=='ArrowUp') {
+                console.log('UP_R');
+                up = false;
+            }
+            if(e.key=='ArrowDown') {
+                console.log('DOWN_R');
+                down = false;
+            }
+            if(e.key=='ArrowLeft') {
+                console.log('LEFT_R');
+                left = false;
+            }
+            if(e.key=='ArrowRight') {
+                console.log('RIGHT_R');
+                right = false;
+            }
+            if(e.key=='r') {
+                console.log('RESTART_R');
+            }
+            if(e.key==' '){
+                console.log('PAUSE_R');
+            }
+        })    
+
+    },
+
+    clear : function() {
+        //clear the current canvas status
+        this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
+    },
+    stop : function() {
+        //implement pause function
+        console.log('STOP!!!');
+        pause = true;
+    },
+    restart : function(){
+        //implement restart function
+        location.reload();
+    }
+}
+
+
+
+
+
+
+
+//function of creating component
+function component(width, height, color, x, y, type) {
+    this.width = width;
+    this.height = height;
+    this.speedX = 0;
+    this.speedY = 0;    
+    this.x = x;
+    this.y = y;
+    this.pass = false;
+
+
+    this.type = type;
+    if (type == "image") {
+        this.image = new Image();
+        this.image.src = color;
+    }
+
+    this.update = function() {
+        ctx = myGameArea.context;
+        if (type == "image") {
+            if(this.image.hidden==false) ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+        } 
+        else {
+            ctx.fillStyle = color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+
+    }
+    //update component's position
+    this.newPos = function() {
+        var borderx = myGameArea.canvas.width - this.width;
+        var bordery = myGameArea.canvas.height - this.height;
+        if(this.x<0){this.x=0};
+        if(this.x>borderx){this.x=borderx};
+        if(this.y<0){this.y=0};
+        if(this.y>bordery){this.y=bordery};
+
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        if(this.x<0){this.x=0; this.speedX=0;};
+        if(this.x>borderx){this.x=borderx; this.speedX=0;};
+        if(this.y<0){this.y=0; this.speedY=0;};
+        if(this.y>bordery){this.y=bordery; this.speedY=0;};
+    }
+
+    //crash function detect function
+    this.crashWith = function(otherobj) {
+        var myleft = this.x + 5;
+        var myright = this.x + (this.width) - 5;
+        var mytop = this.y + 5;
+        var mybottom = this.y + (this.height) - 5;
+        var otherleft = otherobj.x;
+        var otherright = otherobj.x + (otherobj.width);
+        var othertop = otherobj.y;
+        var otherbottom = otherobj.y + (otherobj.height);
+        var crash = true;
+        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+            crash = false;
+        }
+        return crash;
+    }
+}
+
+//function of creating text as a component
+function textcomponent(size, family, color, x, y, d) {
+    this.size = size;
+    this.family = family;
+    this.color = color;
+    this.x = x;
+    this.y = y;
+    this.data = d;
+    this.update = function() {
+        ctx = myGameArea.context;
+        ctx.font = this.size + " " + this.family;
+        ctx.fillStyle = color;
+        ctx.fillText(this.text, this.x, this.y);
+
+    }
+}
+
+//The everyinterval function returns true if the current framenumber corresponds with the given interval.
+function everyinterval(n) {
+    if ((myGameArea.frameNo / n) % 1 == 0) {
+        return true;
+    }
+  return false;
+}
+
+
+function kbcontrol(){
+//implement different keyboard control
+    if(up^down){
+        if(up==true) {
+            if(myGamePiece.speedY>0) myGamePiece.speedY = 0;
+            myGamePiece.speedY--;
+        }
+        if(down==true) {
+            if(myGamePiece.speedY<0) myGamePiece.speedY = 0;
+            myGamePiece.speedY++;
+        }
+    } else {
+        myGamePiece.speedY = 0;
+    }
+    
+    if(left^right){
+        if(left==true) {
+            if(myGamePiece.speedX>0) myGamePiece.speedX = 0;
+            myGamePiece.speedX--;
+        }
+        if(right==true) {
+            if(myGamePiece.speedX<0) myGamePiece.speedX = 0;
+            myGamePiece.speedX++;
+        }
+    } else {
+        myGamePiece.speedX = 0;
+    }
+    
+    if(up || down || left || right){
+        if(up&&!(down||left||right)) myGamePiece.image.src = './up.svg';
+        else if(down&&!(up||left||right)) myGamePiece.image.src = './down.svg';
+        else if(left&&!(right)) myGamePiece.image.src = './left.svg';
+        else if(right&&!(left)) myGamePiece.image.src = './right.svg';
+        else myGamePiece.image.src = './bug.svg';
+    } else {
+        myGamePiece.image.src = './stop.svg'
+    }
+    
+    //if(spark>0) myGamePiece.image.src = './spark.svg'
+}
+
+
+function updateGameArea() {
+
+    
+    if(pause==false && myLife.data!=0){
+            myGameArea.clear();
+        for (i = 0; i < myObstacles.length; i += 1) {
+            if (myGamePiece.crashWith(myObstacles[i])) {
+                    //implement action when crash into obstacle
+                    if(spark==0 && myLife.data > 0) {
+                        myLife.data--;
+                        spark = 10;
+                    }
+            } 
+        }
+
+        //update Obstacles  
+        myGameArea.frameNo += 1;
+        
+        //console.log(myGameArea.frameNo);
+        
+        if ((myGameArea.frameNo == 1 || everyinterval(Math.ceil(22/speed)))) {
+            //implement random moving obstacles
+            if(Math.floor(Math.random()+delta)>=1 || myGameArea.frameNo == 1){
+                delta = -1;
+                gapTop = Math.floor(Math.random()*50)*7;
+                gapSize = Math.floor(Math.random()*50*3) + minGap;
+                if(gapTop!=0) myObstacles.push(new component(20, gapTop, "green", 1000, 0));
+                if((gapTop+gapSize)<600) {
+                    tmp = new component(20, 600-(gapTop+gapSize), "green", 1000, gapTop+gapSize);
+                    if(gapTop!=0) tmp.pass = true;
+                    myObstacles.push(tmp);
+                }
+            } else {
+                delta += Math.random()*0.25;
+            }
+            //console.log(myGamePiece.image.hidden);
+            if(spark>0){
+                spark--;
+                myGamePiece.image.hidden = !myGamePiece.image.hidden;
+            }
+        }
+        console.log(myObstacles.length);
+        for (i = 0; i < myObstacles.length; i += 1) {
+            myObstacles[i].x -= speed;
+            
+            if(myObstacles[i].x < myGamePiece.x && myObstacles[i].pass==false){
+                myObstacles[i].pass = true;
+                myScore.data++;
+                if(speed<5) speed += 0.087;
+                if(speed>=5) speed += 0.187;
+            }
+            if(myObstacles[i].x < -10){
+                myObstacles.splice(i,1);
+                i--;
+                continue;
+            }
+            myObstacles[i].update();
+            
+            
+        }
+
+        //update gamepiece
+        //implement of making gamepiece invincible state when bumping into obstacle
+        myGamePiece.newPos();
+        myGamePiece.update();
+        
+        //update score and life
+        myScore.text = "SCORE: " + myScore.data ;
+        myScore.update();
+        myLife.text = "Life: " + myLife.data ;
+        myLife.update();
+
+        //function of keyboard control
+        kbcontrol();
+    } else {
+    
+    }
+}
+
+
+
+
+
+
+</script>
+</body>
+</html>

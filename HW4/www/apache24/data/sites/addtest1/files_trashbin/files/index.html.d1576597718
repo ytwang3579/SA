@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CallApi</title>
+</head>
+<body>
+<h2>TEST</h2>
+
+<button type='button' onclick='(function(){
+var show = document.getElementById("checkmethod");
+show.innerHTML = "Available Method(s): ";
+var xmlhttp = new XMLHttpRequest();
+xmlhttp.onreadystatechange = function() {
+  if (this.readyState == 4 && this.status == 200) {
+    var myObj = JSON.parse(this.responseText);
+    for( i in myObj.method )
+    {
+        var x = document.getElementById("select");
+        var option = document.createElement("option");
+        option.text = myObj.method[i];
+        option.id = myObj.method[i];
+        option.value = myObj["base_url"] + myObj[myObj.method[i]];
+        x.add(option);
+        show.innerHTML += myObj.method[i] + " ";
+    }
+  }
+};
+xmlhttp.open("GET", "https://softwarestudio.2y.idv.tw/~ta1/api/endpoint.php", true);
+xmlhttp.send();
+})()'>Get Api</button>
+<p id='checkmethod'></p>
+
+<input id='para1' type='number'>
+<input id='para2' type='number'>
+<select id='select' name='select'>
+<option id='CHOOSE'>CHOOSE</option>
+</select>
+<button type="submit" onclick='(function(){
+  var par1 = document.getElementById("para1").value;
+  var par2 = document.getElementById("para2").value;
+  var sel = document.getElementById("select").value;
+  if(sel!="CHOOSE")
+  {
+    var obj, dbParam, xmlhttp, send, x, txt = "";
+    obj = { par1: parseFloat(par1), par2: parseFloat(par2) };
+    dbParam = JSON.stringify(obj);
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        send = JSON.parse(this.responseText);
+        txt += "<tr><td>" + send.method + "</td><td>";
+        txt += send.ans;
+        txt += "</td></tr>";
+        document.getElementById("table").innerHTML += txt;
+        }
+      };
+    xmlhttp.open("POST", sel, true);
+    xmlhttp.send(dbParam);
+  }
+  })()'>SUBMIT</button>
+
+<br>
+<table style='font-size: 20px; border-style: dashed;' border='2' id='table'>
+<tr>
+  <th>Api Method</th>
+  <th>Answer</th>
+</tr>
+</table>
+<script>
+
+//console.log([par1,par2,sel]);
+
+
+</script>
+</body>
+</html>

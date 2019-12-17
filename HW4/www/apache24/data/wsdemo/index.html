@@ -1,0 +1,31 @@
+<!DOCTYPE html5>
+<html>
+	<head>
+		<title>websocketd</title>
+		<style>
+			#count {
+				font: bold 150px arial;
+				margin: auto;
+				padding: 10px;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div id='count'></div>
+		<h1>A081056 SA HW4</h1>
+
+		<script>
+			var ws = new WebSocket('wss://mysahw4.nctu.me/wsdemo/ws.php');
+			ws.onopen = function () {
+				document.body.style.backgroundColor = '#cfc';
+			};
+			ws.onclose = function () {
+				document.body.style.backgroundColor = null;
+			};
+			ws.onmessage = function () {
+				document.getElementById('count').textContent = event.data;
+			};
+		</script>
+	</body>
+</html>
